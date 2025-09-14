@@ -75,6 +75,11 @@
                 <button class="header-btn" onclick="openSettings()" fdprocessedid="s5foqk">
                     <i class="fas fa-cog"></i> Settings
                 </button>
+                <button id="payBtn" onclick="window.location.href='onlinepayment.html';">Get Premium</button>
+
+                <button class="header-btn primary" onclick="window.open('https://v0-no-content-theta-three.vercel.app/dashboard', '_blank')">
+                   <i class="fas fa-sign-out-alt"></i> Dashboard
+                </button>
                 <button class="header-btn primary"  fdprocessedid="j5b44" onclick="window.location.href='WebPage1.html';">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </button>
@@ -124,10 +129,7 @@
                                     <div class="model-name">Ai-Gemini 2.0 Flash</div>
                                     <div class="model-description">Google's fastest model</div>
                                 </div>
-                                <div class="model-option" data-model="google/gemini-2.5-pro-exp-03-25:free" onclick="selectModel('google/gemini-2.5-pro-exp-03-25:free')">
-                                    <div class="model-name">Ai-Gemini 2.5 Pro</div>
-                                    <div class="model-description">Advanced capabilities</div>
-                                </div>
+                                
                                 <div class="model-option" data-model="deepseek-chat" onclick="selectModel('deepseek-chat')">
                                     <div class="model-name">Ai-DeepSeek V3</div>
                                     <div class="model-description">Reasoning specialist</div>
@@ -253,6 +255,12 @@
                         <h3 style="margin-bottom: 12px; color: var(--color-text-primary);">Voice Settings</h3>
                         <select id="voiceLanguage" style="width: 100%; padding: 12px; background: var(--card-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text-primary); margin-bottom: 12px;">
                             <option value="en-US">English (US)</option>
+                            <option value="en-GB">English (UK)</option>
+                            <option value="fr-FR">Hindi</option>
+                            <option value="de-DE">Marathi</option>
+                            <option value="es-ES">Spanish</option>
+                            <option value="it-IT">Italian</option>
+                            <option value="ja-JP">Japanese</option>
                         </select>
                         <select id="voiceEngine" style="width: 100%; padding: 12px; background: var(--card-bg); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text-primary);">
                             <option value="standard">Standard</option>
@@ -1385,6 +1393,7 @@
     </style>
 </head>
 
+    
     <script>
         let currentModel = 'gpt-4.1-nano';
         let currentTTS = 'generative';
@@ -1788,13 +1797,29 @@
             input.style.height = Math.min(input.scrollHeight, 120) + 'px';
         }
 
-
+        function copyMessage(button) {
+            const messageText = button.closest('.message-content').querySelector('.message-bubble').textContent;
+            navigator.clipboard.writeText(messageText);
+            showStatus('Message copied', 1500);
+        }
 
         async function speakMessage(button) {
             const messageText = button.closest('.message-content').querySelector('.message-bubble').textContent;
             await speakText(messageText);
         }
 
+        function shareMessage(button) {
+            const messageText = button.closest('.message-content').querySelector('.message-bubble').textContent;
+            if (navigator.share) {
+                navigator.share({
+                    title: 'CodeRush Response',
+                    text: messageText
+                });
+            } else {
+                navigator.clipboard.writeText(messageText);
+                showStatus('Message copied for sharing', 2000);
+            }
+        }
 
         function downloadMessage(button) {
             const messageText = button.closest('.message-content').querySelector('.message-bubble').textContent;
@@ -1846,7 +1871,27 @@
             });
         }
 
+        function toggleStreaming() {
+            streamingEnabled = !streamingEnabled;
+            const toggle = document.getElementById('streamToggle');
+            const checkbox = document.getElementById('streamingEnabled');
+            
+            toggle.classList.toggle('active', streamingEnabled);
+            if (checkbox) checkbox.checked = streamingEnabled;
+            
+            showStatus(`Streaming ${streamingEnabled ? 'enabled' : 'disabled'}`, 1500);
+        }
 
+        function toggleAutoTTS() {
+            autoTTSEnabled = !autoTTSEnabled;
+            const toggle = document.getElementById('ttsToggle');
+            const checkbox = document.getElementById('autoTTSEnabled');
+            
+            toggle.classList.toggle('active', autoTTSEnabled);
+            if (checkbox) checkbox.checked = autoTTSEnabled;
+            
+            showStatus(`Auto TTS ${autoTTSEnabled ? 'enabled' : 'disabled'}`, 1500);
+        }
 
         function newChat() {
             conversationHistory = [];
@@ -1924,20 +1969,11 @@
             
             localStorage.setItem('nova-zenith-settings', JSON.stringify(settings));
         }
-
-        function loadGeminiApiKey() {
-            const savedKey = localStorage.getItem('gemini-api-key');
-            if (savedKey) {
-                geminiApiKey = savedKey;
-                document.getElementById('geminiApiKey').value = savedKey;
-                updateGeminiApiStatus(true);
-            } else {
-                const defaultKey = 'AIzaSyAGR-gIyLYRlcm4KMJwxNbXEBJepjWLdvM';
-                geminiApiKey = defaultKey;
-                localStorage.setItem('gemini-api-key', defaultKey);
-                document.getElementById('geminiApiKey').value = defaultKey;
-                updateGeminiApiStatus(true);
-            }
+        async function speakText(text) {
+            if (!text) return;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = "en-US"; // ya "hi-IN" agar Hindi chahiye
+            window.speechSynthesis.speak(utterance);
         }
 
         function loadGeminiApiKey() {
@@ -1947,7 +1983,7 @@
                 document.getElementById('geminiApiKey').value = savedKey;
                 updateGeminiApiStatus(true);
             } else {
-                const defaultKey = 'AIzaSyDKwPyEHXNLMQyrjV_Sm6wUyXpz9BWXQts';
+                const defaultKey = 'AIzaSyBi8uUigQmQRJ80eoaAgifCroQb3uY6gIY';
                 geminiApiKey = defaultKey;
                 localStorage.setItem('gemini-api-key', defaultKey);
                 document.getElementById('geminiApiKey').value = defaultKey;
@@ -2012,7 +2048,7 @@
         function updateGeminiApiStatus(isConnected) {
             const statusElement = document.getElementById('geminiApiStatus');
             if (isConnected) {
-                statusElement.innerHTML = '<i class="fas fa-check"></i> Gemini Flash API Connected';
+                statusElement.innerHTML = '<i class="fas fa-check"></i> CodeRush API Connected';
                 statusElement.style.background = 'rgba(16, 163, 127, 0.1)';
                 statusElement.style.color = 'var(--success-color)';
             } else {
@@ -2095,6 +2131,7 @@
 
         setInterval(saveSettings, 30000);
     </script>
+
 
 <span id="PING_IFRAME_FORM_DETECTION" style="display: none;"></span>
 </body>
